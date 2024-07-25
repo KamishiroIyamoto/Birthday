@@ -1,0 +1,34 @@
+{
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@nestjs/bull": "^0.6.0",
+    "@nestjs/common": "^9.0.0",
+    "@nestjs/config": "^2.2.0",
+    "@nestjs/core": "^9.0.0",
+    "@nestjs/mapped-types": "*",
+    "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/schedule": "^2.1.0",
+    "@nestjs/typeorm": "^9.0.0",
+    "bull": "^4.8.5",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.13.2",
+    "express": "^4.19.2",
+    "messagebird": "^3.8.1",
+    "mustache": "^4.2.0",
+    "mysql": "^2.18.1",
+    "mysql2": "^2.3.3",
+    "node-cron": "^3.0.3",
+    "nodemon": "^2.0.22",
+    "notifme-sdk": "^1.11.0",
+    "pg": "^8.12.0",
+    "pino": "^9.3.1",
+    "redis": "^4.6.15",
+    "reflect-metadata": "^0.1.13",
+    "rimraf": "^3.0.2",
+    "rxjs": "^7.2.0",
+    "telegram": "^2.22.2",
+    "typeorm": "^0.3.7"
+  }
+}
