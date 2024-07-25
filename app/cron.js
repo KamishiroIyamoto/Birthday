@@ -6,7 +6,7 @@ const pool = require("./db");
 const {createClient} = require("redis");
 const logger = require('./logger');
 
-cron.schedule(/* TODO: вернуть "0 0 * * *"*/"* * * * *", async function () {
+cron.schedule("0 0 * * *", async function () {
     const redisClient = createClient({
         socket: {
             port: process.env.REDIS_PORT,
@@ -36,9 +36,7 @@ cron.schedule(/* TODO: вернуть "0 0 * * *"*/"* * * * *", async function (
                 afterWeek.setDate(afterWeek.getDate() + 7);
 
                 if (birthday > currentDate && afterWeek >= birthday) {
-                    /*const selectChats = await pool.query("SELECT * FROM chats WHERE user_id = $1 AND deleted = false").then(async (records) => {
-                        console.log("records.rows");
-                        console.log(records.rows);
+                    const selectChats = await pool.query("SELECT * FROM chats WHERE user_id = $1 AND deleted = false", [user.id]).then(async (records) => {
                         if (records.rows.length === 0) {
                             const title = "День рождения " + user.name + " " + birthday.getDate() + "." + birthday.getMonth() + "." + birthday.getFullYear();
                             const createChat = await client.invoke(
@@ -48,37 +46,17 @@ cron.schedule(/* TODO: вернуть "0 0 * * *"*/"* * * * *", async function (
                                 })
                             );
 
-                            console.log(createChat);
-
                             const SQL = `INSERT INTO chats (name, chat_id, user_id)
                                          VALUES ($1, $2, $3)`
                             const result = await pool.query(SQL, [
                                 title,
-                                createChat.chats[0].chat.id.toString(),
+                                createChat.updates.chats[0].id.toString(),
                                 user.id
                             ]);
 
                             logger.info('Create chat '+title);
                         }
-                    });*/
-
-                    const title = "День рождения "+user.name+" "+birthday.getDate()+"."+birthday.getMonth()+"."+birthday.getFullYear();
-                    const createChat = await client.invoke(
-                        new Api.messages.CreateChat({
-                            users: getUsernames(users, user.id),
-                            title: title,
-                        })
-                    );
-
-                    console.log(createChat);
-
-                    const SQL = `INSERT INTO chats (name)
-                                 VALUES ($1)`
-                    const result = await pool.query(SQL, [
-                        title,
-                    ]);
-
-                    logger.info('Create chat '+title);
+                    });
                 }
             }
         });

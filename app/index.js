@@ -78,7 +78,7 @@ app.get("/auth", async (req, res) => {
 app.get("/setup", async (req, res) => {
     try {
         await pool.query("CREATE TABLE IF NOT EXISTS users (id serial PRIMARY KEY, name varchar(255) NOT NULL, username varchar(255) NOT NULL, birthday date, deleted boolean DEFAULT false)");
-        await pool.query("CREATE TABLE IF NOT EXISTS chats (id serial PRIMARY KEY, name varchar(255) NOT NULL/*, chat_id varchar(255) NOT NULL, user_id integer NOT NULL*/, deleted boolean DEFAULT false)");
+        await pool.query("CREATE TABLE IF NOT EXISTS chats (id serial PRIMARY KEY, name varchar(255) NOT NULL, chat_id varchar(255) NOT NULL, user_id integer NOT NULL, deleted boolean DEFAULT false)");
 
         logger.info('Created tables users and chats');
 
@@ -214,15 +214,15 @@ app.post("/chats/delete", async (req, res) => {
     if (!req.body) return res.sendStatus(400);
 
     try {
-        /*const stringSession = new StringSession(await (await redisClient).get("session"));
+        const stringSession = new StringSession(await (await redisClient).get("session"));
         const client = new TelegramClient(stringSession, config.apiId, config.apiHash, {});
         await client.connect();
 
         const deleteChat = await client.invoke(
             new Api.messages.DeleteChat({
-                chatId: BigInt(req.body.chat-id),
+                chatId: BigInt(req.body.chat_id),
             })
-        );*/
+        );
 
         const SQL = `UPDATE chats
                      SET deleted = true
@@ -295,8 +295,6 @@ app.post("/auth", async (req, res) => {
                 );
 
                 logger.info('Success auth by ' + phone);
-
-                // await (await redisClient).set("futureAuthToken", signIn.futureAuthToken);
 
                 res.writeHead(302, {
                     "Location": "/"
