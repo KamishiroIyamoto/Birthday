@@ -1,47 +1,46 @@
-<!doctype html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Коллеги</title>
-</head>
-<body>
+<div class="container">
     <h1>Коллеги</h1>
     <form method="post" action="/users/add">
-        <label>
-            Имя в родительном падеже
-            <input name="name" placeholder="Иванова Ивана" required>
-        </label>
-        <label>
-            Ник в телеграме (то, что после @).
-            <input name="username" placeholder="cyberlenin1917" required>
-        </label>
-        <label>
-            День рождения
-            <input name="birthday" type="date" required>
-        </label>
-        <button type="submit">Сохранить</button>
+        <div class="mb-3">
+            <label for="name" class="form-label">Имя в родительном падеже</label>
+            <input class="form-control" name="name" id="name" placeholder="Иванова Ивана" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="username" class="form-label">Ник в телеграме (то, что после @).</label>
+            <input class="form-control" name="username" id="username" placeholder="cyberlenin1917" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="birthday" class="form-label">День рождения</label>
+            <input class="form-control" name="birthday" id="birthday" type="date" required>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Сохранить</button>
     </form>
+    <br><br>
 
     {{#users}}
-        <div style="display: flex; align-items: center">
-            {{name}} | {{username}} | {{birthday}}
-            <form method="post" action="/users/delete" style="display: inline-block">
-                <input type="hidden" name="id" value="{{id}}">
-                <button type="submit" style="width: 50px">
-                    <svg id="Layer_1" data-name="Layer 1"
-                         xmlns="http://www.w3.org/2000/svg"
-                         viewBox="0 0 110.61 122.88">
-                        <title>trash</title>
-                        <path d="M39.27,58.64a4.74,4.74,0,1,1,9.47,0V93.72a4.74,4.74,0,1,1-9.47,0V58.64Zm63.6-19.86L98,103a22.29,22.29,0,0,1-6.33,14.1,19.41,19.41,0,0,1-13.88,5.78h-45a19.4,19.4,0,0,1-13.86-5.78l0,0A22.31,22.31,0,0,1,12.59,103L7.74,38.78H0V25c0-3.32,1.63-4.58,4.84-4.58H27.58V10.79A10.82,10.82,0,0,1,38.37,0H72.24A10.82,10.82,0,0,1,83,10.79v9.62h23.35a6.19,6.19,0,0,1,1,.06A3.86,3.86,0,0,1,110.59,24c0,.2,0,.38,0,.57V38.78Zm-9.5.17H17.24L22,102.3a12.82,12.82,0,0,0,3.57,8.1l0,0a10,10,0,0,0,7.19,3h45a10.06,10.06,0,0,0,7.19-3,12.8,12.8,0,0,0,3.59-8.1L93.37,39ZM71,20.41V12.05H39.64v8.36ZM61.87,58.64a4.74,4.74,0,1,1,9.47,0V93.72a4.74,4.74,0,1,1-9.47,0V58.64Z"/>
-                    </svg>
-                </button>
-            </form>
+        <div class="row">
+            <div class="col">{{name}}</div>
+            <div class="col">{{username}}</div>
+            <div class="col">{{birthday}}</div>
+            <div class="col">
+                <form method="post" action="/users/delete" style="display: inline-block">
+                    <input type="hidden" name="id" value="{{id}}">
+                    <button type="submit" style="width: 50px">
+                        <svg id="Layer_1" data-name="Layer 1"
+                             xmlns="http://www.w3.org/2000/svg"
+                             viewBox="0 0 110.61 122.88">
+                            <title>trash</title>
+                            <path d="M39.27,58.64a4.74,4.74,0,1,1,9.47,0V93.72a4.74,4.74,0,1,1-9.47,0V58.64Zm63.6-19.86L98,103a22.29,22.29,0,0,1-6.33,14.1,19.41,19.41,0,0,1-13.88,5.78h-45a19.4,19.4,0,0,1-13.86-5.78l0,0A22.31,22.31,0,0,1,12.59,103L7.74,38.78H0V25c0-3.32,1.63-4.58,4.84-4.58H27.58V10.79A10.82,10.82,0,0,1,38.37,0H72.24A10.82,10.82,0,0,1,83,10.79v9.62h23.35a6.19,6.19,0,0,1,1,.06A3.86,3.86,0,0,1,110.59,24c0,.2,0,.38,0,.57V38.78Zm-9.5.17H17.24L22,102.3a12.82,12.82,0,0,0,3.57,8.1l0,0a10,10,0,0,0,7.19,3h45a10.06,10.06,0,0,0,7.19-3,12.8,12.8,0,0,0,3.59-8.1L93.37,39ZM71,20.41V12.05H39.64v8.36ZM61.87,58.64a4.74,4.74,0,1,1,9.47,0V93.72a4.74,4.74,0,1,1-9.47,0V58.64Z"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
         </div>
     {{/users}}
+    <br><br>
 
-    <a href="/">На главную</a>
-</body>
-</html>
+    <a class="btn btn-primary" href="/">На главную</a>
+</div>

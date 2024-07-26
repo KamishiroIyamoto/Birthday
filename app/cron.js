@@ -6,7 +6,7 @@ const pool = require("./db");
 const {createClient} = require("redis");
 const logger = require('./logger');
 
-cron.schedule("0 0 * * *", async function () {
+cron.schedule("* * * * *"/*"0 0 * * *"*/, async function () {
     const redisClient = createClient({
         socket: {
             port: process.env.REDIS_PORT,
@@ -32,13 +32,18 @@ cron.schedule("0 0 * * *", async function () {
                 const currentDate = new Date();
                 birthday.setFullYear(currentDate.getFullYear());
 
-                const afterWeek = structuredClone(currentDate);
-                afterWeek.setDate(afterWeek.getDate() + 7);
+                const afterFewDays = structuredClone(currentDate);
+                afterFewDays.setDate(afterFewDays.getDate() + 10);
 
-                if (birthday > currentDate && afterWeek >= birthday) {
+                if (birthday > currentDate && afterFewDays >= birthday) {
                     const selectChats = await pool.query("SELECT * FROM chats WHERE user_id = $1 AND deleted = false", [user.id]).then(async (records) => {
                         if (records.rows.length === 0) {
-                            const title = "День рождения " + user.name + " " + birthday.getDate() + "." + birthday.getMonth() + "." + birthday.getFullYear();
+                            let mounth = birthday.getMonth() + 1;
+                            if (mounth < 10) {
+                                mounth = "0" + mounth;
+                            }
+
+                            const title = "День рождения " + user.name + " " + birthday.getDate() + "." + mounth + "." + birthday.getFullYear();
                             const createChat = await client.invoke(
                                 new Api.messages.CreateChat({
                                     users: getUsernames(users, user.id),

@@ -22,12 +22,6 @@ const redisClient = createClient({
     .on('error', err => logger.error('Redis Client Error. '+err))
     .connect();
 
-async function checkSession() {
-    const session = await (await redisClient).get("session");
-
-    return session === null;
-}
-
 app.get("/", async (req, res) => {
     if (await checkSession()) {
         res.writeHead(302, {
@@ -35,44 +29,27 @@ app.get("/", async (req, res) => {
         });
         res.end();
     } else {
-        fs.readFile(path.join(__dirname, "/html/index.html"), (err, data) => {
-            if (err) {
-                res.writeHead(500);
-                res.end("Error. Not found.");
-                return;
-            }
-            res.writeHead(200, {"Content-Type": "text/html"});
-            res.end(data);
-        });
+        res.writeHead(200, {"Content-Type": "text/html"});
+        res.end(renderTemplate("index", "Дни рождения"));
     }
 });
 
 app.get("/auth", async (req, res) => {
-    fs.readFile(path.join(__dirname, "/html/auth.mustache"), (err, data) => {
-        if (err) {
-            res.writeHead(500);
-            res.end("Error. Not found.");
-            return;
-        }
+    let result = {};
 
-        let result = [];
+    const phone = req.query.phone;
+    if (phone !== undefined) {
+        result.phone = phone;
+        result.button = "Авторизоваться";
+    }
 
-        const phone = req.query.phone;
-        if (phone !== undefined) {
-            result["phone"] = phone;
-            result["button"] = "Авторизоваться";
-        }
+    const code = req.query.code;
+    if (code !== undefined) {
+        result.code = code;
+    }
 
-        const code = req.query.code;
-        if (code !== undefined) {
-            result["code"] = code;
-        }
-
-        const output = mustache.render(data.toString(), result);
-
-        res.writeHead(200, {"Content-Type": "text/html"});
-        res.end(output);
-    });
+    res.writeHead(200, {"Content-Type": "text/html"});
+    res.end(renderTemplate("auth", "Авторизация", result));
 });
 
 app.get("/setup", async (req, res) => {
@@ -80,12 +57,9 @@ app.get("/setup", async (req, res) => {
         await pool.query("CREATE TABLE IF NOT EXISTS users (id serial PRIMARY KEY, name varchar(255) NOT NULL, username varchar(255) NOT NULL, birthday date, deleted boolean DEFAULT false)");
         await pool.query("CREATE TABLE IF NOT EXISTS chats (id serial PRIMARY KEY, name varchar(255) NOT NULL, chat_id varchar(255) NOT NULL, user_id integer NOT NULL, deleted boolean DEFAULT false)");
 
-        logger.info('Created tables users and chats');
-
-        res.writeHead(302, {
-            "Location": "/"
-        });
-        res.end();
+        const message = "Created tables users and chats";
+        logger.info(message);
+        res.send(message);
     } catch (err) {
         logger.error(err);
         res.sendStatus(500);
@@ -99,35 +73,26 @@ app.get("/users", async (req, res) => {
         });
         res.end();
     } else {
-        fs.readFile(path.join(__dirname, "/html/users.mustache"), async (err, data) => {
-            if (err) {
-                res.writeHead(500);
-                res.end("Error. Not found.");
-                return;
-            }
+        try {
+            const selectUsers = await pool.query("SELECT * FROM users WHERE deleted = false").then((records) => {
+                let users = records.rows;
 
-            try {
-                const selectUsers = await pool.query("SELECT * FROM users WHERE deleted = false").then((records) => {
-                    let users = records.rows;
+                for (let user of users) {
+                    let date = new Date(user.birthday);
+                    user.birthday = date.toLocaleDateString("ru-RU");
+                }
 
-                    for (let user of users) {
-                        let date = new Date(user.birthday);
-                        user.birthday = date.toLocaleDateString("ru-RU");
-                    }
+                const result = {
+                    users: users
+                };
 
-                    const result = {
-                        users: users
-                    };
-                    const output = mustache.render(data.toString(), result);
-
-                    res.writeHead(200, {"Content-Type": "text/html"});
-                    res.end(output);
-                });
-            } catch (err) {
-                logger.error(err);
-                res.sendStatus(500);
-            }
-        });
+                res.writeHead(200, {"Content-Type": "text/html"});
+                res.end(renderTemplate("users", "Коллеги", result));
+            });
+        } catch (err) {
+            logger.error(err);
+            res.sendStatus(500);
+        }
     }
 });
 
@@ -138,30 +103,21 @@ app.get("/chats", async (req, res) => {
         });
         res.end();
     } else {
-        fs.readFile(path.join(__dirname, "/html/chats.mustache"), async (err, data) => {
-            if (err) {
-                res.writeHead(500);
-                res.end("Error. Not found.");
-                return;
-            }
+        try {
+            const selectChats = await pool.query("SELECT * FROM chats WHERE deleted = false").then((records) => {
+                let chats = records.rows;
 
-            try {
-                const selectChats = await pool.query("SELECT * FROM chats WHERE deleted = false").then((records) => {
-                    let chats = records.rows;
+                const result = {
+                    chats: chats
+                };
 
-                    const result = {
-                        chats: chats
-                    };
-                    const output = mustache.render(data.toString(), result);
-
-                    res.writeHead(200, {"Content-Type": "text/html"});
-                    res.end(output);
-                });
-            } catch (err) {
-                logger.error(err);
-                res.sendStatus(500)
-            }
-        });
+                res.writeHead(200, {"Content-Type": "text/html"});
+                res.end(renderTemplate("chats", "Чаты", result));
+            });
+        } catch (err) {
+            logger.error(err);
+            res.sendStatus(500)
+        }
     }
 });
 
@@ -316,5 +272,24 @@ app.post("/auth", async (req, res) => {
         }
     }
 });
+
+async function checkSession() {
+    const session = await (await redisClient).get("session");
+
+    return session === null;
+}
+
+function renderTemplate (templateName, title, data = {}) {
+    const currentTemplate = fs.readFileSync(path.join(__dirname, `/html/${templateName}.mustache`));
+    const renderedCurrentTemplate = mustache.render(currentTemplate.toString(), data);
+
+    const baseData = {
+        title: title,
+        body: renderedCurrentTemplate
+    };
+
+    const baseTemplate = fs.readFileSync(path.join(__dirname, "/html/base.mustache"));
+    return mustache.render(baseTemplate.toString(), baseData);
+}
 
 app.listen(port, () => console.log(`Server has started on port: ${port}`));
