@@ -134,13 +134,12 @@ app.get("/signout", async (req, res) => {
         res.end();
     } else {
         const stringSession = new StringSession(await (await redisClient).get("session"));
-
         const client = new TelegramClient(stringSession, config.apiId, config.apiHash, {});
         await client.connect();
 
         const result = await client.invoke(new Api.auth.LogOut({}));
 
-        client.disconnect();
+        await client.disconnect();
 
         stringSession.close();
         stringSession.delete();
@@ -202,6 +201,17 @@ app.post("/users/delete", async (req, res) => {
         "Location": "/users"
     });
     res.end();
+});
+
+app.post("/users/export", async (req, res) => {
+    try {
+        const selectUsers = await pool.query("SELECT * FROM users WHERE deleted = false").then((records) => {
+            res.json(JSON.stringify(records.rows));
+        });
+    } catch (err) {
+        logger.error(err);
+        res.sendStatus(500);
+    }
 });
 
 app.post("/chats/delete", async (req, res) => {
