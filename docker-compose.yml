@@ -20,8 +20,8 @@ services:
       DB_PORT: ${DB_PORT}
 
   redis:
-    container_name: redis
     image: redis:alpine3.16
+    container_name: redis
     restart: always
     ports:
       - 6379:6379
@@ -29,6 +29,7 @@ services:
   postgres:
     image: postgres:12-alpine
     container_name: postgres
+    restart: always
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -36,4 +37,3 @@ services:
       - /data/lib/birthday/postgresql/data:/var/lib/postgresql/data
     ports:
       - ${DB_PORT}:${DB_PORT}
-    restart: always

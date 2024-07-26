@@ -23,14 +23,14 @@ const redisClient = createClient({
     .connect();
 
 app.get("/", async (req, res) => {
-    if (await checkSession()) {
+    if (await checkNoAuth()) {
         res.writeHead(302, {
             "Location": "/auth"
         });
         res.end();
     } else {
         res.writeHead(200, {"Content-Type": "text/html"});
-        res.end(renderTemplate("index", "Дни рождения"));
+        res.end(renderTemplate("index", "Дни рождения", {}, true));
     }
 });
 
@@ -46,6 +46,11 @@ app.get("/auth", async (req, res) => {
     const code = req.query.code;
     if (code !== undefined) {
         result.code = code;
+    }
+
+    const password = req.query.password;
+    if (code !== undefined) {
+        result.password = password;
     }
 
     res.writeHead(200, {"Content-Type": "text/html"});
@@ -67,7 +72,7 @@ app.get("/setup", async (req, res) => {
 });
 
 app.get("/users", async (req, res) => {
-    if (await checkSession()) {
+    if (await checkNoAuth()) {
         res.writeHead(302, {
             "Location": "/auth"
         });
@@ -87,7 +92,7 @@ app.get("/users", async (req, res) => {
                 };
 
                 res.writeHead(200, {"Content-Type": "text/html"});
-                res.end(renderTemplate("users", "Коллеги", result));
+                res.end(renderTemplate("users", "Коллеги", result, true));
             });
         } catch (err) {
             logger.error(err);
@@ -97,7 +102,7 @@ app.get("/users", async (req, res) => {
 });
 
 app.get("/chats", async (req, res) => {
-    if (await checkSession()) {
+    if (await checkNoAuth()) {
         res.writeHead(302, {
             "Location": "/auth"
         });
@@ -112,12 +117,45 @@ app.get("/chats", async (req, res) => {
                 };
 
                 res.writeHead(200, {"Content-Type": "text/html"});
-                res.end(renderTemplate("chats", "Чаты", result));
+                res.end(renderTemplate("chats", "Чаты", result, true));
             });
         } catch (err) {
             logger.error(err);
             res.sendStatus(500)
         }
+    }
+});
+
+app.get("/signout", async (req, res) => {
+    if (await checkNoAuth()) {
+        res.writeHead(302, {
+            "Location": "/auth"
+        });
+        res.end();
+    } else {
+        const stringSession = new StringSession(await (await redisClient).get("session"));
+
+        const client = new TelegramClient(stringSession, config.apiId, config.apiHash, {});
+        await client.connect();
+
+        const result = await client.invoke(new Api.auth.LogOut({}));
+
+        client.disconnect();
+
+        stringSession.close();
+        stringSession.delete();
+
+        logger.info('Success logout');
+
+        await (await redisClient).del("session");
+        await (await redisClient).del("phoneCodeHash");
+        await (await redisClient).del("alreadyAuth");
+        await (await redisClient).del("auth");
+
+        res.writeHead(302, {
+            "Location": "/"
+        });
+        res.end();
     }
 });
 
@@ -211,10 +249,11 @@ app.post("/auth", async (req, res) => {
         const phone = req.body.phone.trim();
 
         let stringSession;
-        if (await checkSession()) {
+        const session = await (await redisClient).get("session");
+        if (session === null) {
             stringSession = new StringSession("");
         } else {
-            stringSession = new StringSession(await (await redisClient).get("session"));
+            stringSession = new StringSession(session);
         }
 
         const client = new TelegramClient(stringSession, config.apiId, config.apiHash, {});
@@ -223,10 +262,7 @@ app.post("/auth", async (req, res) => {
         const code = req.body.code;
         if (code === undefined) {
             try {
-                const {phoneCodeHash} = await client.sendCode({
-                    apiId: config.apiId,
-                    apiHash: config.apiHash,
-                }, phone);
+                const {phoneCodeHash} = await client.sendCode(config, phone);
 
                 await (await redisClient).set("phoneCodeHash", phoneCodeHash);
             } catch (e) {
@@ -257,12 +293,42 @@ app.post("/auth", async (req, res) => {
                 });
                 res.end();
             } catch (e) {
-                logger.error("Error! Auth is failed by " + phone + ". " + e.message);
+                if (e.errorMessage === "SESSION_PASSWORD_NEEDED") {
+                    let password = req.body.password.trim();
+                    try {
+                        const signInWithPassword = client.signInWithPassword(config, {
+                            password: (hint) => new Promise((resolve) => {
+                                resolve(password);
+                                return password;
+                            }),
+                            onError: (err) => {
+                                logger.error("Error! 2FA is failed by " + phone + ". " + err.message);
+                            }
+                        });
 
-                res.writeHead(302, {
-                    "Location": "/auth?phone=" + phone + "&code=" + code.trim()
-                });
-                res.end();
+                        logger.info('Success 2FA by ' + phone);
+                        await (await redisClient).set("auth", 'ok');
+
+                        res.writeHead(302, {
+                            "Location": "/"
+                        });
+                        res.end();
+                    } catch (ex) {
+                        logger.error("Error! 2FA is failed by " + phone + ". " + ex.message);
+
+                        res.writeHead(302, {
+                            "Location": "/auth?phone=" + phone + "&code=" + code.trim() + "&password=" + password
+                        });
+                        res.end();
+                    }
+                } else {
+                    logger.error("Error! Auth is failed by " + phone + ". " + e.message);
+
+                    res.writeHead(302, {
+                        "Location": "/auth?phone=" + phone + "&code=" + code.trim()
+                    });
+                    res.end();
+                }
             }
         } else {
             res.writeHead(302, {
@@ -273,17 +339,18 @@ app.post("/auth", async (req, res) => {
     }
 });
 
-async function checkSession() {
-    const session = await (await redisClient).get("session");
+async function checkNoAuth() {
+    const auth = await (await redisClient).get("auth");
 
-    return session === null;
+    return auth !== 'ok';
 }
 
-function renderTemplate (templateName, title, data = {}) {
+function renderTemplate (templateName, title, data = {}, auth = false) {
     const currentTemplate = fs.readFileSync(path.join(__dirname, `/html/${templateName}.mustache`));
     const renderedCurrentTemplate = mustache.render(currentTemplate.toString(), data);
 
     const baseData = {
+        auth: auth,
         title: title,
         body: renderedCurrentTemplate
     };

@@ -12,6 +12,11 @@
             <label for="code" class="form-label">Код</label>
             <input class="form-control" name="code" id="code" placeholder="12345" pattern="[0-9]{5}" value="{{code}}" required>
         </div>
+
+        <div class="mb-3">
+            <label for="password" class="form-label">Пароль от двухфакторной аутентификации (если есть)</label>
+            <input type="password" class="form-control" name="password" id="password" placeholder="Password1234" value="{{password}}">
+        </div>
         {{/button}}
 
         <button type="submit" class="btn btn-primary mb-3">{{button}}{{^button}}Отправить код{{/button}}</button>

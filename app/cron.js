@@ -6,7 +6,7 @@ const pool = require("./db");
 const {createClient} = require("redis");
 const logger = require('./logger');
 
-cron.schedule(/*"* * * * *"*/"0 0 * * *", async function () {
+cron.schedule("* * * * *"/*"0 0 * * *"*/, async function () {
     const redisClient = createClient({
         socket: {
             port: process.env.REDIS_PORT,
