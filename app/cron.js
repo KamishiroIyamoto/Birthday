@@ -17,7 +17,8 @@ cron.schedule(/*"* * * * *"*/"0 0 * * *", async function () {
         .connect();
 
     const session = await (await redisClient).get("session");
-    if (session !== null) {
+    const auth = await (await redisClient).get("auth");
+    if (session !== null && auth === 'ok') {
         const stringSession = new StringSession(session);
 
         const client = new TelegramClient(stringSession, config.apiId, config.apiHash, {});
@@ -38,28 +39,32 @@ cron.schedule(/*"* * * * *"*/"0 0 * * *", async function () {
                 if (birthday > currentDate && afterFewDays >= birthday) {
                     const selectChats = await pool.query("SELECT * FROM chats WHERE user_id = $1 AND deleted = false", [user.id]).then(async (records) => {
                         if (records.rows.length === 0) {
-                            let mounth = birthday.getMonth() + 1;
-                            if (mounth < 10) {
-                                mounth = "0" + mounth;
+                            try {
+                                let mounth = birthday.getMonth() + 1;
+                                if (mounth < 10) {
+                                    mounth = "0" + mounth;
+                                }
+
+                                const title = "День рождения " + user.name + " " + birthday.getDate() + "." + mounth + "." + birthday.getFullYear();
+                                const createChat = await client.invoke(
+                                    new Api.messages.CreateChat({
+                                        users: getUsernames(users, user.id),
+                                        title: title,
+                                    })
+                                );
+
+                                const SQL = `INSERT INTO chats (name, chat_id, user_id)
+                                             VALUES ($1, $2, $3)`
+                                const result = await pool.query(SQL, [
+                                    title,
+                                    createChat.updates.chats[0].id.toString(),
+                                    user.id
+                                ]);
+
+                                logger.info('Create chat ' + title);
+                            } catch (e) {
+                                logger.error("ERROR! Chat isn't created! "+e.message);
                             }
-
-                            const title = "День рождения " + user.name + " " + birthday.getDate() + "." + mounth + "." + birthday.getFullYear();
-                            const createChat = await client.invoke(
-                                new Api.messages.CreateChat({
-                                    users: getUsernames(users, user.id),
-                                    title: title,
-                                })
-                            );
-
-                            const SQL = `INSERT INTO chats (name, chat_id, user_id)
-                                         VALUES ($1, $2, $3)`
-                            const result = await pool.query(SQL, [
-                                title,
-                                createChat.updates.chats[0].id.toString(),
-                                user.id
-                            ]);
-
-                            logger.info('Create chat '+title);
                         }
                     });
                 }
