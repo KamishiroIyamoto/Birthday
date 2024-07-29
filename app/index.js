@@ -298,6 +298,8 @@ app.post("/auth", async (req, res) => {
 
                 logger.info('Success auth by ' + phone);
 
+                await (await redisClient).set("auth", 'ok');
+
                 res.writeHead(302, {
                     "Location": "/"
                 });
@@ -306,24 +308,31 @@ app.post("/auth", async (req, res) => {
                 if (e.errorMessage === "SESSION_PASSWORD_NEEDED") {
                     let password = req.body.password.trim();
                     try {
-                        const signInWithPassword = client.signInWithPassword(config, {
+                        const signInWithPassword = await client.signInWithPassword(config, {
                             password: (hint) => new Promise((resolve) => {
                                 resolve(password);
                                 return password;
                             }),
-                            onError: (err) => {
+                            onError: async (err) => {
+                                await (await redisClient).set("auth", 'no');
                                 logger.error("Error! 2FA is failed by " + phone + ". " + err.message);
+
+                                res.writeHead(302, {
+                                    "Location": "/auth?phone=" + phone + "&code=" + code.trim() + "&password=" + password
+                                });
+                                res.end();
                             }
                         });
 
-                        logger.info('Success 2FA by ' + phone);
                         await (await redisClient).set("auth", 'ok');
+                        logger.info('Success 2FA by ' + phone);
 
                         res.writeHead(302, {
                             "Location": "/"
                         });
                         res.end();
                     } catch (ex) {
+                        await (await redisClient).set("auth", 'no');
                         logger.error("Error! 2FA is failed by " + phone + ". " + ex.message);
 
                         res.writeHead(302, {
@@ -341,6 +350,7 @@ app.post("/auth", async (req, res) => {
                 }
             }
         } else {
+            await (await redisClient).set("auth", 'no');
             res.writeHead(302, {
                 "Location": "/auth?phone=" + phone
             });
