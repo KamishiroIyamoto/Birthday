@@ -7,11 +7,10 @@
 1. Переименовать `.env.example` в `.env`.
 2. Переименовать `example-config.js` в `config.js`.
 3. Заменить значения в конфиге `apiId` и `apiHash` на свои (сгенерировать в [telegram](https://my.telegram.org/apps)).
-4. Выполнить команды:
+4. Выполнить команду:
 
 ```bash
 make re
-curl 0.0.0.0:3000/setup
 ```
 
 Локальный сервер:

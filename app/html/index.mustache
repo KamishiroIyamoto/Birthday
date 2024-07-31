@@ -1,6 +1,24 @@
 <div class="container">
     <h1>Дни рождения</h1>
 
-    <a class="btn btn-primary" href="/users">Коллеги</a>
-    <a class="btn btn-primary" href="/chats">Чаты</a>
+    <div class="row m-2">
+        <div class="col">
+            <a class="btn btn-primary" href="/users">Коллеги</a>
+        </div>
+        <div class="col">
+            <a class="btn btn-primary" href="/test">Тестовое сообщение себе</a>
+        </div>
+    </div>
+    <div class="row m-2">
+        <div class="col">
+            <a class="btn btn-primary" href="/chats">Чаты</a>
+        </div>
+        <div class="col">
+            <form action="/number">
+                <label for="number" class="form-label">Количество дней до дня рождения</label>
+                <input class="form-control" id="number" name="number" type="number" value="{{number}}">
+                <button class="btn btn-primary" type="submit">Сохранить</button>
+            </form>
+        </div>
+    </div>
 </div>

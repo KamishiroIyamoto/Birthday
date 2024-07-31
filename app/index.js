@@ -29,8 +29,15 @@ app.get("/", async (req, res) => {
         });
         res.end();
     } else {
+        let number = await (await redisClient).get("number");
+        if (number === null) {
+            number = 10;
+        }
+        const data = {
+            number: number
+        }
         res.writeHead(200, {"Content-Type": "text/html"});
-        res.end(renderTemplate("index", "Дни рождения", {}, true));
+        res.end(renderTemplate("index", "Дни рождения", data, true));
     }
 });
 
@@ -57,18 +64,19 @@ app.get("/auth", async (req, res) => {
     res.end(renderTemplate("auth", "Авторизация", result));
 });
 
-app.get("/setup", async (req, res) => {
-    try {
-        await pool.query("CREATE TABLE IF NOT EXISTS users (id serial PRIMARY KEY, name varchar(255) NOT NULL, username varchar(255) NOT NULL, birthday date, deleted boolean DEFAULT false)");
-        await pool.query("CREATE TABLE IF NOT EXISTS chats (id serial PRIMARY KEY, name varchar(255) NOT NULL, chat_id varchar(255) NOT NULL, user_id integer NOT NULL, deleted boolean DEFAULT false)");
+app.get("/test", async (req, res) => {
+    const session = await (await redisClient).get("session");
+    const stringSession = new StringSession(session);
 
-        const message = "Created tables users and chats";
-        logger.info(message);
-        res.send(message);
-    } catch (err) {
-        logger.error(err);
-        res.sendStatus(500);
-    }
+    const client = new TelegramClient(stringSession, config.apiId, config.apiHash, {});
+    await client.connect();
+
+    await client.sendMessage("me", { message: "Hello!" });
+
+    res.writeHead(302, {
+        "Location": "/"
+    });
+    res.end();
 });
 
 app.get("/users", async (req, res) => {
@@ -325,6 +333,7 @@ app.post("/auth", async (req, res) => {
                         });
 
                         await (await redisClient).set("auth", 'ok');
+                        await (await redisClient).set("number", 15);
                         logger.info('Success 2FA by ' + phone);
 
                         res.writeHead(302, {

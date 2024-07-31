@@ -34,6 +34,6 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - /data/lib/birthday/postgresql/data:/var/lib/postgresql/data
+      - ./postgres:/var/lib/postgresql/data
     ports:
       - ${DB_PORT}:${DB_PORT}

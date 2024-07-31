@@ -23,3 +23,9 @@ sh-redis:
 ##
 ps:
 	docker-compose ps
+
+##
+# Остановить контейнеры
+##
+down:
+	docker-compose down
