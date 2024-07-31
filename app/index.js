@@ -166,6 +166,17 @@ app.get("/signout", async (req, res) => {
     }
 });
 
+app.post("/number", async (req, res) => {
+    if (!req.body) return res.sendStatus(400);
+
+    await (await redisClient).set("number", req.body.number);
+
+    res.writeHead(302, {
+        "Location": "/"
+    });
+    res.end();
+});
+
 app.post("/users/add", async (req, res) => {
     if (!req.body) return res.sendStatus(400);
 
